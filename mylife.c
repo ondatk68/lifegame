@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h> // sleep()関数を使う
+#include <time.h>
 
 
 /*
@@ -9,9 +10,16 @@
  */
 void my_init_cells(const int height, const int width, int cell[height][width], FILE* fp){
     if(fp==NULL){
-        int first[5][2]={{30,20},{30,22},{31,22},{31,23},{32,20}};
+        /*int first[5][2]={{30,20},{30,22},{31,22},{31,23},{32,20}};
         for(int i=0; i<5; i++){
             cell[first[i][1]][first[i][0]]=1;
+        }*/
+        int r[10]={1,0,0,0,0,0,0,0,0,0};
+        srand((unsigned int)time(NULL));
+        for(int y=0; y<height; y++){
+            for(int x=0; x<width; x++){
+                cell[y][x]=r[rand()%10];
+            }
         }
     }else{
         int x,y;
@@ -28,7 +36,18 @@ void my_init_cells(const int height, const int width, int cell[height][width], F
  グリッドの描画: 世代情報とグリッドの配列等を受け取り、ファイルポインタに該当する出力にグリッドを描画する
  */
 void my_print_cells(FILE *fp, int gen, const int height, const int width, int cell[height][width]){
-    fprintf(fp,"generation = %d\n", gen); // この場合 (fp = stdout), printfと同じ
+    int alive=0;
+    for(int y=0; y<height; y++){
+        for(int x=0; x<width; x++){
+            if(cell[y][x]){
+                alive++;
+            }
+        }
+    }
+
+
+
+    fprintf(fp,"generation = %d, alive: %d, dead: %d\n", gen, alive, height*width-alive); // この場合 (fp = stdout), printfと同じ
     fprintf(fp,"+");
     for (int x = 0 ; x < width ; x++)
         fprintf(fp, "-");
