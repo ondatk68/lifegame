@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h> // sleep()関数を使う
 #include <time.h>
+#include <math.h>
+#include <string.h>
 
 
 /*
@@ -22,13 +24,28 @@ void my_init_cells(const int height, const int width, int cell[height][width], F
             }
         }
     }else{
+        
         int x,y;
-        char life[20];
-        char ver[20];
-        fscanf(fp, "%s %s", life, ver);       
-        while(fscanf(fp, "%d %d",&x, &y) != EOF){           
-            cell[y][x]=1;
+        int len=100;   
+        char buff[len];
+        char *token;
+
+        while(fgets(buff, len, fp)!=NULL){
+            if(buff[0]!='#'){
+                token = strtok(buff, " =,");
+                if(strcmp(token,"x")==0){
+                    //token=strtok(NULL, " ");
+                    
+                }else{
+                    x=atoi(token);
+                    token=strtok(NULL, " ");
+                    y=atoi(token);
+                    cell[y][x]=1;
+                }
+            }
         }
+
+       
     }
 }
 
@@ -60,8 +77,8 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
         // ANSIエスケープコードを用いて、赤い"#" を表示
         // \e[31m で 赤色に変更
         // \e[0m でリセット（リセットしないと以降も赤くなる）
-            if(cell[y][x]){
-                fprintf(fp, "\e[31m#\e[0m");
+            if(cell[y][x]){                
+                fprintf(fp, "\e[31m#\e[0m");               
             }
             else{
                 fprintf(fp, " ");
@@ -130,6 +147,7 @@ void my_update_cells(const int height, const int width, int cell[height][width])
 int main(int argc, char **argv)
 {
   FILE *fp = stdout;
+  FILE *output;
   const int height = 40;
   const int width = 70;
 
@@ -148,7 +166,6 @@ int main(int argc, char **argv)
   else if (argc == 2) {
     FILE *lgfile;
     if ( (lgfile = fopen(argv[1],"r")) != NULL ) {
-      //printf("Hello");
       my_init_cells(height,width,cell,lgfile); // ファイルによる初期化
     }
     else{
@@ -162,13 +179,30 @@ int main(int argc, char **argv)
   }
 
   my_print_cells(fp, 0, height, width, cell); // 表示する
-  sleep(1); // 1秒休止
+  //sleep(1); // 1秒休止
+  
 
+  char filename[21]="./output/gen__00.lif";
   /* 世代を進める*/
-  for (int gen = 1 ;; gen++) {
+  for (int gen = 1 ; gen < 10000; gen++) {
     my_update_cells(height, width, cell); // セルを更新
     my_print_cells(fp, gen, height, width, cell);  // 表示する
-    sleep(1); //1秒休止する
+    usleep(0.1*1000*1000); //0.1秒休止する
+    if(gen%100==0){
+        filename[12]=gen/1000+'0';
+        filename[13]=(gen%1000)/100+'0';
+
+        output = fopen(filename, "w");
+        fprintf(output, "#Life 1.06\n");
+        for(int x=0; x<width; x++){
+            for(int y=0; y<height; y++){
+                if(cell[y][x]){
+                    fprintf(output,"%d %d\n", x, y);
+                }
+            }
+        }
+        fclose(output);
+    }
     fprintf(fp,"\e[%dA",height+3);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
   }
 
