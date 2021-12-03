@@ -10,7 +10,7 @@
  ファイルによるセルの初期化: 生きているセルの座標が記述されたファイルをもとに2次元配列の状態を初期化する
  fp = NULL のときは、関数内で適宜定められた初期状態に初期化する。関数内初期値はdefault.lif と同じもの
  */
-void my_init_cells(const int height, const int width, int cell[height][width], FILE* fp){
+int my_init_cells(const int height, const int width, int cell[height][width], FILE* fp){
     if(fp==NULL){
         /*int first[5][2]={{30,20},{30,22},{31,22},{31,23},{32,20}};
         for(int i=0; i<5; i++){
@@ -28,25 +28,98 @@ void my_init_cells(const int height, const int width, int cell[height][width], F
         int x,y;
         int len=100;   
         char buff[len];
+        char next[len];
+        next[0]='\0';
         char *token;
+        int rle=0;
+        int xx;
+        int yy;
+        
+        char num[10];
+        int digit;
+        int dollcount=0;
+        int bcount;
+        int ocount;
+        int count;
 
         while(fgets(buff, len, fp)!=NULL){
             if(buff[0]!='#'){
-                token = strtok(buff, " =,");
-                if(strcmp(token,"x")==0){
-                    //token=strtok(NULL, " ");
-                    
+                if(buff[0]=='x'){
+                    rle=1;
+                    xx = atoi(strtok(buff, " =,x"));
+                    yy = atoi(strtok(NULL, " =,y"));
+                    if(width<xx || height<yy){
+                        fprintf(stderr,"too large\n");
+                        return -1;
+                    }
                 }else{
-                    x=atoi(token);
-                    token=strtok(NULL, " ");
-                    y=atoi(token);
-                    cell[y][x]=1;
-                }
+                    if(rle){
+                        strcpy(buff,strcat(next,buff));
+                        next[0]='\0';
+                        token=strtok(buff, "$!");
+                        
+                        while(token != NULL){
+                            
+                            for(int i=0; i<10; i++){
+                                num[i]='\0';
+                            }
+                            count=0;
+                            digit=0;
+                            if(token[strlen(token)-1]!='\n'){
+                                for(int i=0; i<strlen(token); i++){
+                                    if(token[i]=='b'){
+                                        if(num[0]){
+                                            bcount=atoi(num);                        
+                                            for(int i=0; i<10; i++){
+                                                num[i]='\0';
+                                            }
+                                            digit=0;
+                                        }else{
+                                            bcount=1;
+                                        }
+                                        
+                                        count+=bcount;
+                                    }else if(token[i]=='o'){
+                                        if(num[0]){
+                                            ocount=atoi(num);
+                                            for(int i=0; i<10; i++){
+                                                num[i]='\0';
+                                            }
+                                            digit=0;
+                                        }else{
+                                            ocount=1;
+                                        }
+                                        
+                                        for(int j=count; j<count+ocount; j++){
+                                            cell[dollcount][j]=1;
+                                        }
+                                        count+=ocount;
+                                    }else{
+                                        num[digit]=token[i];
+                                        digit++;
+                                    }
+                                }
+                                
+                                dollcount++;
+                            }else{
+                                token[strlen(token)-1]='\0';
+                                strcpy(next,token);
+                            }
+                            token=strtok(NULL, "$!");
+                        }
+                    }else{
+                        x=atoi(strtok(buff, " "));
+                        y=atoi(strtok(NULL, " "));
+                        cell[y][x]=1;
+                    }
+                }               
             }
         }
 
        
     }
+
+    return 0;
 }
 
 /*
@@ -166,7 +239,9 @@ int main(int argc, char **argv)
   else if (argc == 2) {
     FILE *lgfile;
     if ( (lgfile = fopen(argv[1],"r")) != NULL ) {
-      my_init_cells(height,width,cell,lgfile); // ファイルによる初期化
+      if(my_init_cells(height,width,cell,lgfile)==-1){
+          return EXIT_FAILURE;
+      }; // ファイルによる初期化
     }
     else{
       fprintf(stderr,"cannot open file %s\n",argv[1]);
