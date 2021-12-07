@@ -137,7 +137,7 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
 
 
 
-    fprintf(fp,"generation = %d, alive: %d, dead: %d\n", gen, alive, height*width-alive); // この場合 (fp = stdout), printfと同じ
+    fprintf(fp,"generation = %5d, alive: %4d, dead: %4d\n", gen, alive, height*width-alive); // この場合 (fp = stdout), printfと同じ
     fprintf(fp,"+");
     for (int x = 0 ; x < width ; x++)
         fprintf(fp, "-");
