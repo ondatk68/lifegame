@@ -137,7 +137,7 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
 
 
 
-    fprintf(fp,"generation = %d, alive: %d, dead: %d\n", gen, alive, height*width-alive); // この場合 (fp = stdout), printfと同じ
+    fprintf(fp,"generation = %5d, alive: %4d, dead: %4d\n", gen, alive, height*width-alive); // この場合 (fp = stdout), printfと同じ
     fprintf(fp,"+");
     for (int x = 0 ; x < width ; x++)
         fprintf(fp, "-");
@@ -259,11 +259,12 @@ int main(int argc, char **argv)
 
   char filename[21]="./output/gen__00.lif";
   /* 世代を進める*/
-  for (int gen = 1 ; gen < 10000; gen++) {
+  int gen=1;
+  while(1){
     my_update_cells(height, width, cell); // セルを更新
     my_print_cells(fp, gen, height, width, cell);  // 表示する
     usleep(0.1*1000*1000); //0.1秒休止する
-    if(gen%100==0){
+    if(gen%100==0 && gen<10000){
         filename[12]=gen/1000+'0';
         filename[13]=(gen%1000)/100+'0';
 
@@ -279,6 +280,7 @@ int main(int argc, char **argv)
         fclose(output);
     }
     fprintf(fp,"\e[%dA",height+3);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
+    gen++;
   }
 
   return EXIT_SUCCESS;
