@@ -16,7 +16,7 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
         for(int i=0; i<5; i++){
             cell[first[i][1]][first[i][0]]=1;
         }*/
-        int r[10]={1,0,0,0,0,0,0,0,0,0};
+        int r[10]={1,0,0,0,0,0,0,0,0,0}; //alive:dead = 1:9
         srand((unsigned int)time(NULL));
         for(int y=0; y<height; y++){
             for(int x=0; x<width; x++){
@@ -43,23 +43,23 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
         int count;
 
         while(fgets(buff, len, fp)!=NULL){
-            if(buff[0]!='#'){
-                if(buff[0]=='x'){
+            if(buff[0]!='#'){//コメント行は読み飛ばす
+                if(buff[0]=='x'){//先頭文字がxの場合、これをrleのheader lineと判断する。
                     rle=1;
                     xx = atoi(strtok(buff, " =,x"));
                     yy = atoi(strtok(NULL, " =,y"));
+                    //読み込んだファイルの盤面が、mainで指定されているサイズよりも大きかったらエラー
                     if(width<xx || height<yy){
                         fprintf(stderr,"too large\n");
                         return -1;
                     }
-                }else{
+                }else{//コメントでもrleのheaderでもない行は、rleか、1.06の盤面情報
                     if(rle){
-                        strcpy(buff,strcat(next,buff));
+                        strcpy(buff,strcat(next,buff));//前の行から引き継いだ分をくっつける
                         next[0]='\0';
+
                         token=strtok(buff, "$!");
-                        
                         while(token != NULL){
-                            
                             for(int i=0; i<10; i++){
                                 num[i]='\0';
                             }
@@ -89,21 +89,23 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
                                         }else{
                                             ocount=1;
                                         }
-                                        
+                                        //現在地からocount個は生きている
                                         for(int j=count; j<count+ocount; j++){
                                             cell[dollcount][j]=1;
                                         }
                                         count+=ocount;
-                                    }else{
+                                    }else if(token[i]==' '){
+                                        //スペースは無視
+                                    }else{//数字情報を記録
                                         num[digit]=token[i];
                                         digit++;
                                     }
                                 }
                                 
                                 dollcount++;
-                            }else{
-                                token[strlen(token)-1]='\0';
-                                strcpy(next,token);
+                            }else{//最後が改行だったとき
+                                token[strlen(token)-1]='\0';//改行を消して
+                                strcpy(next,token);//次の行に回す
                             }
                             token=strtok(NULL, "$!");
                         }
@@ -126,6 +128,7 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
  グリッドの描画: 世代情報とグリッドの配列等を受け取り、ファイルポインタに該当する出力にグリッドを描画する
  */
 void my_print_cells(FILE *fp, int gen, const int height, const int width, int cell[height][width]){
+    //生きている個数を数え上げ
     int alive=0;
     for(int y=0; y<height; y++){
         for(int x=0; x<width; x++){
@@ -209,6 +212,7 @@ void my_update_cells(const int height, const int width, int cell[height][width])
             }
         }
     }
+    //一気に更新
     for(int y=0; y<height; y++){
         for(int x=0; x<width; x++){
             cell[y][x]=newcell[y][x];
@@ -239,7 +243,7 @@ int main(int argc, char **argv)
   else if (argc == 2) {
     FILE *lgfile;
     if ( (lgfile = fopen(argv[1],"r")) != NULL ) {
-      if(my_init_cells(height,width,cell,lgfile)==-1){
+      if(my_init_cells(height,width,cell,lgfile)==-1){//ファイルで初期化してみて盤面サイズがおかしかったらエラー
           return EXIT_FAILURE;
       }; // ファイルによる初期化
     }
@@ -257,7 +261,7 @@ int main(int argc, char **argv)
   //sleep(1); // 1秒休止
   
 
-  char filename[21]="./output/gen__00.lif";
+  char filename[21]="./output/gen__00.lif"; //outputフォルダに盤面ファイルを吐き出す
   /* 世代を進める*/
   int gen=1;
   while(1){
