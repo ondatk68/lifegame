@@ -12,10 +12,7 @@
  */
 int my_init_cells(const int height, const int width, int cell[height][width], FILE* fp){
     if(fp==NULL){
-        /*int first[5][2]={{30,20},{30,22},{31,22},{31,23},{32,20}};
-        for(int i=0; i<5; i++){
-            cell[first[i][1]][first[i][0]]=1;
-        }*/
+        
         int r[10]={1,0,0,0,0,0,0,0,0,0}; //alive:dead = 1:9
         srand((unsigned int)time(NULL));
         for(int y=0; y<height; y++){
@@ -127,7 +124,7 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
 /*
  グリッドの描画: 世代情報とグリッドの配列等を受け取り、ファイルポインタに該当する出力にグリッドを描画する
  */
-void my_print_cells(FILE *fp, int gen, const int height, const int width, int cell[height][width]){
+void my_print_cells(FILE *fp, int gen, const int height, const int width, int cell[height][width], char rule[]){
     //生きている個数を数え上げ
     int alive=0;
     for(int y=0; y<height; y++){
@@ -139,8 +136,7 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
     }
 
 
-
-    fprintf(fp,"generation = %5d, alive: %4d, dead: %4d\n", gen, alive, height*width-alive); // この場合 (fp = stdout), printfと同じ
+    fprintf(fp,"generation = %5d, alive: %4d, dead: %4d, rule: %s\n", gen, alive, height*width-alive, rule); // この場合 (fp = stdout), printfと同じ
     fprintf(fp,"+");
     for (int x = 0 ; x < width ; x++)
         fprintf(fp, "-");
@@ -189,22 +185,58 @@ int my_count_adjacent_cells(int h, int w, const int height, const int width, int
     return count;
 }
 
+void make_rule(char rule[], int born[], int survive[]){
+    char _born[10];
+    char _survive[10];
+
+    strcpy(_born,strtok(rule,"/\n"));
+    strcpy(_survive,strtok(NULL,"/\n"));
+
+    for(int i=1; i<strlen(_born); i++){
+        born[i-1]=_born[i]-'0';
+    }
+    for(int i=1; i<strlen(_survive); i++){
+        survive[i-1]=_survive[i]-'0';
+    }
+}
+
 /*
  ライフゲームのルールに基づいて2次元配列の状態を更新する
  */
-void my_update_cells(const int height, const int width, int cell[height][width]){
+void my_update_cells(const int height, const int width, int cell[height][width], int born[10], int survive[10]){
     int newcell[height][width];
+
     for(int y=0; y<height; y++){
         for(int x=0; x<width; x++){
             int around=my_count_adjacent_cells(y,x,height,width,cell);
+            int bcheck=0;
+            int scheck=0;
+            
             if(cell[y][x]){
-                if(around==2 || around==3){
+                for(int i=0; i<10; i++){
+                    if(survive[i] != -1){
+                        if(around==survive[i]){
+                            scheck=1;
+                            break;
+                        }
+                    }
+                }
+                if(scheck){
                     newcell[y][x]=1;
                 }else{
                     newcell[y][x]=0;
                 }
+                
             }else{
-                if(around==3){
+                for(int i=0; i<10; i++){
+                    if(born[i] != -1){
+                        if(around==born[i]){
+                            bcheck=1;
+                            break;
+                        }
+                    }
+                }
+                if(bcheck){
                     newcell[y][x]=1;
                 }else{
                     newcell[y][x]=0;
@@ -212,6 +244,7 @@ void my_update_cells(const int height, const int width, int cell[height][width])
             }
         }
     }
+
     //一気に更新
     for(int y=0; y<height; y++){
         for(int x=0; x<width; x++){
@@ -227,6 +260,7 @@ int main(int argc, char **argv)
   FILE *output;
   const int height = 40;
   const int width = 70;
+  char Rule[30];
 
   int cell[height][width];
   for(int y = 0 ; y < height ; y++){
@@ -236,37 +270,54 @@ int main(int argc, char **argv)
   }
 
   /* ファイルを引数にとるか、ない場合はデフォルトの初期値を使う */
-  if ( argc > 2 ) {
+  if ( argc > 3 ) {
     fprintf(stderr, "usage: %s [filename for init]\n", argv[0]);
     return EXIT_FAILURE;
   }
-  else if (argc == 2) {
+  else if (argc == 3) {//2個ならルール盤面ファイルの順で
+    strcpy(Rule,argv[1]);
     FILE *lgfile;
-    if ( (lgfile = fopen(argv[1],"r")) != NULL ) {
+    if ( (lgfile = fopen(argv[2],"r")) != NULL ) {
       if(my_init_cells(height,width,cell,lgfile)==-1){//ファイルで初期化してみて盤面サイズがおかしかったらエラー
           return EXIT_FAILURE;
       }; // ファイルによる初期化
     }
     else{
-      fprintf(stderr,"cannot open file %s\n",argv[1]);
+      fprintf(stderr,"cannot open file %s\n",argv[2]);
       return EXIT_FAILURE;
     }
     fclose(lgfile);
   }
-  else{
-    my_init_cells(height, width, cell, NULL); // デフォルトの初期値を使う
+  else if(argc==2){//1個の場合は、ルールの指定のみで初期盤面はランダム。
+      my_init_cells(height,width,cell,NULL);
+      strcpy(Rule,argv[1]);
   }
+  else{//引数なしは、初期盤面ランダムでルールはConway's life
+    my_init_cells(height, width, cell, NULL); // デフォルトの初期値を使う
+    strcpy(Rule,"B3/S23");
+  }
+    
+    int born[10];
+    int survive[10];
+    for(int i=0; i<10; i++){
+        born[i]=-1;
+        survive[i]=-1;
+    }
 
-  my_print_cells(fp, 0, height, width, cell); // 表示する
-  //sleep(1); // 1秒休止
+    char c_rule[30];
+    strcpy(c_rule,Rule);
+
+    make_rule(c_rule, born,survive);
+
+
+  my_print_cells(fp, 0, height, width, cell, Rule); // 表示する
   
-
   char filename[21]="./output/gen__00.lif"; //outputフォルダに盤面ファイルを吐き出す
   /* 世代を進める*/
   int gen=1;
   while(1){
-    my_update_cells(height, width, cell); // セルを更新
-    my_print_cells(fp, gen, height, width, cell);  // 表示する
+    my_update_cells(height, width, cell, born, survive); // セルを更新
+    my_print_cells(fp, gen, height, width, cell, Rule);  // 表示する
     usleep(0.1*1000*1000); //0.1秒休止する
     if(gen%100==0 && gen<10000){
         filename[12]=gen/1000+'0';
