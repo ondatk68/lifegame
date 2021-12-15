@@ -6,28 +6,32 @@
 * 一文字目がxである行があるかどうかで、rleか1.06かを判断した。
 
 ## 発展課題
+コンパイルは
+```bash
+gcc mylife4.c -o mylife4 -lm
+```
 コマンドライン引数でルール及び初期盤面を指定。  
 ルールの書式はB/S notationに則る。` B{number list}/S{number list}`  
 [ルール一覧](https://www.conwaylife.com/wiki/List_of_Life-like_cellular_automata)  
  
-引数を2つ指定する場合は ルール→初期盤面の順で指定する。1.06形式を拡張した、生物種情報を含むファイル(後述)を指定することも可能。
+引数を2つ指定する場合は ルール→初期盤面の順で指定する。1.06形式を拡張した、生物種情報を含むファイル(後述)を指定することも可能。  
 ```bash
-./mylifegame4 B3/S23 gosperglidergun.lif
+./mylife4 B3/S23 gosperglidergun.lif
 ```
 あるいは、  
 初期盤面はランダムで種数のみ指定することも可能。  
 種数は1~4の数字を指定できる。(5以上だとエラーになる)  
 ```bash
-./mylifegame4 B3/S23 4
+./mylife4 B3/S23 4
 ```
 
 引数が1つの場合はルールのみ指定できる(ファイルの指定は不可)。初期盤面はランダムで種数は1になる。
 ```bash
-./mylifegame4 B3/S23
+./mylife4 B3/S23
 ```
 引数がなしの場合はルールはB3/S23(Conway's Life)で盤面はランダムになる。種数は1になる。
 ```bash
-./mylifegame4
+./mylife4
 ```
 ### 複数種の時の更新のルール
 * そのマスにいる時  
