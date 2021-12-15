@@ -178,7 +178,7 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
     }
 
 
-    fprintf(fp,"rule: %s, gen = %5d, ", rule, gen /*alive, height*width-sum(n_species, alive), rule*/); // この場合 (fp = stdout), printfと同じ
+    fprintf(fp,"rule: %s, gen = %5d, ", rule, gen); // この場合 (fp = stdout), printfと同じ
     for(int i=0; i<n_species; i++){
         fprintf(fp,"%c: %4d, ", color[i], alive[i]);
     }
@@ -205,8 +205,8 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
     for (int y = 0; y < height; y++) {
         fprintf(fp,"|");
         for (int x = 0; x < width; x++) {
-        // ANSIエスケープコードを用いて、赤い"#" を表示
-        // \e[31m で 赤色に変更
+        // ANSIエスケープコードを用いて、"#" を表示
+        // 種類に応じて色分け
         // \e[0m でリセット（リセットしないと以降も赤くなる）
             if(cell[y][x]){  
                 if(cell[y][x]==1){              
@@ -243,7 +243,7 @@ void my_count_adjacent_cells(int h, int w, const int height, const int width, in
     for(int i=0; i<n_species; i++){
         n_count[i]=0;
     }
-    //int count=0;
+    
     for(int i=0; i<8; i++){
         if(0<=h+d[i][0] && h+d[i][0]<height && 0<=w+d[i][1] && w+d[i][1]<width){
             if(cell[h+d[i][0]][w+d[i][1]]){
@@ -251,8 +251,6 @@ void my_count_adjacent_cells(int h, int w, const int height, const int width, in
             }
         }
     }
-
-    //return count;
 }
 
 void make_rule(char rule[], int born[], int survive[]){
