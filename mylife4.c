@@ -25,12 +25,12 @@ int max(int n, int list[n]){
  ファイルによるセルの初期化: 生きているセルの座標が記述されたファイルをもとに2次元配列の状態を初期化する
  fp = NULL のときは、関数内で適宜定められた初期状態に初期化する。関数内初期値はdefault.lif と同じもの
  */
-int my_init_cells(const int height, const int width, int cell[height][width], FILE* fp, int n_species){
+int my_init_cells(const int height, const int width, int cell[height][width], FILE* fp, int *n_species){
     if(fp==NULL){
         
         int r[10]={1,0,0,0,0,0,0,0,0,0}; //alive:dead = 1:9
-        int species[n_species];
-        for(int i=0; i<n_species; i++){
+        int species[*n_species];
+        for(int i=0; i<*n_species; i++){
             species[i]=i+1;
         }
         srand((unsigned int)time(NULL));
@@ -39,7 +39,7 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
             for(int x=0; x<width; x++){
                 tmp = r[rand()%10];
                 if(tmp){
-                    cell[y][x]=species[rand()%n_species];
+                    cell[y][x]=species[rand()%*n_species];
                 }else{
                     cell[y][x]=0;
                 }
@@ -49,6 +49,7 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
     }else{
         
         int x,y;
+        char *n;
         int len=100;   
         char buff[len];
         char next[len];
@@ -76,6 +77,8 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
                         fprintf(stderr,"too large\n");
                         return -1;
                     }
+                }else if(buff[0]=='n'){
+                    *n_species=atoi(strtok(buff, " =n"));
                 }else{//コメントでもrleのheaderでもない行は、rleか、1.06の盤面情報
                     if(rle){
                         strcpy(buff,strcat(next,buff));//前の行から引き継いだ分をくっつける
@@ -135,15 +138,19 @@ int my_init_cells(const int height, const int width, int cell[height][width], FI
                     }else{
                         x=atoi(strtok(buff, " "));
                         y=atoi(strtok(NULL, " "));
-                        cell[y][x]=1;
+                        n=strtok(NULL, " ");
+                        if(n!=NULL){
+                            cell[y][x]=atoi(n);
+                        }else{
+                            cell[y][x]=1;
+                        }
+                        
+                        
                     }
                 }               
             }
-        }
-
-       
+        }  
     }
-
     return 0;
 }
 
@@ -175,6 +182,7 @@ void my_print_cells(FILE *fp, int gen, const int height, const int width, int ce
     for(int i=0; i<n_species; i++){
         fprintf(fp,"%c: %4d, ", color[i], alive[i]);
     }
+    
     fprintf(fp,"dead: %4d\n", height*width-sum(n_species, alive));
 
     for(int i=0; i<n_species; i++){
@@ -348,7 +356,7 @@ int main(int argc, char **argv)
     strcpy(Rule,argv[1]);
     FILE *lgfile;
     if ( (lgfile = fopen(argv[2],"r")) != NULL ) {
-      if(my_init_cells(height,width,cell,lgfile,1)==-1){//ファイルで初期化してみて盤面サイズがおかしかったらエラー
+      if(my_init_cells(height,width,cell,lgfile,&n_species)==-1){//ファイルで初期化してみて盤面サイズがおかしかったらエラー
           return EXIT_FAILURE;
       }; // ファイルによる初期化
     }
@@ -356,7 +364,7 @@ int main(int argc, char **argv)
         if(atoi(argv[2])){
             n_species=atoi(argv[2]);
             if(1<=n_species && n_species<=4){
-                my_init_cells(height,width,cell,NULL,n_species);
+                my_init_cells(height,width,cell,NULL,&n_species);
             }else{
                 fprintf(stderr,"too large number of species: %d\n",n_species);
                 return EXIT_FAILURE;
@@ -369,11 +377,23 @@ int main(int argc, char **argv)
     fclose(lgfile);
   }
   else if(argc==2){//1個の場合は、ルールの指定のみで初期盤面はランダム。種数は1。
-      my_init_cells(height,width,cell,NULL,1);
-      strcpy(Rule,argv[1]);
+      my_init_cells(height,width,cell,NULL,&n_species);
+      int check=1;
+      for(int i=0; i<strlen(argv[1]); i++){
+          if(argv[1][i]=='.'){
+              check=0;
+              break;
+          }
+      }
+      if(check){
+        strcpy(Rule,argv[1]);
+      }else{
+          fprintf(stderr,"You didn't define rule.\n");
+            return EXIT_FAILURE;
+      }
   }
   else{//引数なしは、初期盤面ランダムでルールはConway's life。種数は1。
-    my_init_cells(height, width, cell, NULL,1); // デフォルトの初期値を使う
+    my_init_cells(height, width, cell, NULL,&n_species); // デフォルトの初期値を使う
     strcpy(Rule,"B3/S23");
   }
     
@@ -388,16 +408,6 @@ int main(int argc, char **argv)
     strcpy(c_rule,Rule);
 
     make_rule(c_rule, born,survive);
-
-    /*
-    for(int i=0; i<10; i++){
-        printf("%d, ", born[i]);
-    }
-    printf("\n");
-    for(int i=0; i<10; i++){
-        printf("%d, ", survive[i]);
-    }
-    printf("\n");*/
 
   my_print_cells(fp, 0, height, width, cell, Rule, n_species); // 表示する
   
@@ -414,16 +424,24 @@ int main(int argc, char **argv)
 
         output = fopen(filename, "w");
         fprintf(output, "#Life 1.06\n");
+        if(n_species!=1){
+            fprintf(output, "n = %d\n", n_species);
+        }
+        
         for(int x=0; x<width; x++){
             for(int y=0; y<height; y++){
                 if(cell[y][x]){
-                    fprintf(output,"%d %d\n", x, y);
+                    if(n_species==1){
+                        fprintf(output,"%d %d\n", x, y);
+                    }else{
+                        fprintf(output,"%d %d %d\n", x, y, cell[y][x]);
+                    }
                 }
             }
         }
         fclose(output);
     }
-    fprintf(fp,"\e[%dA",height+4);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
+    fprintf(fp,"\e[%dA",height+4);//height+4 の分、カーソルを上に戻す(壁2、表示部2)
     gen++;
   }
 
